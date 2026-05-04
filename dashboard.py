@@ -505,8 +505,6 @@ def chart_top_threats(df: pd.DataFrame, n=10):
 # SIDEBAR  — old sidebar visual layout, with S3 added as the default source
 # ─────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/CQUniversity_logo.svg/320px-CQUniversity_logo.svg.png",
-             width=160, use_column_width=False)
     st.markdown("### 🔐 NLP Log Anomaly Detection")
     st.markdown("**COIT20265 · CQUniversity**")
     st.markdown("Project Client: Dr Fariza Sabrina")
