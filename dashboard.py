@@ -295,14 +295,18 @@ def load_alerts_from_s3(bucket_name: str, prefix: str, region: str) -> pd.DataFr
     else:
         df["threat_score"] = 0
 
-    # Severity compatibility: keep old labels/colors even when S3 uses custom alert_level.
-    source_severity = df["alert_level"] if "alert_level" in df.columns else None
-    if source_severity is not None:
-        df["severity"] = [normalise_severity(level, score) for level, score in zip(source_severity, df["threat_score"])]
+    # Severity compatibility:
+    # For S3 LogBERT alerts, do NOT trust alert_level from JSON for dashboard severity,
+    # because the JSON may contain older labels such as MEDIUM even when score > 11.8.
+    # Always recompute dashboard severity directly from the LogBERT score.
+    if "alert_level" in df.columns:
+        df["raw_s3_alert_level"] = df["alert_level"]
     elif "severity" in df.columns:
-        df["severity"] = [normalise_severity(level, score) for level, score in zip(df["severity"], df["threat_score"])]
+        df["raw_s3_alert_level"] = df["severity"]
     else:
-        df["severity"] = df["threat_score"].apply(severity_label)
+        df["raw_s3_alert_level"] = ""
+
+    df["severity"] = df["threat_score"].apply(severity_label)
 
     # Timestamp compatibility: prefer alert timestamp if present; otherwise use S3 LastModified.
     timestamp_candidates = ["timestamp", "created_at", "event_time", "last_modified"]
@@ -335,7 +339,7 @@ def load_alerts_from_s3(bucket_name: str, prefix: str, region: str) -> pd.DataFr
     # Optional fields used in tables/detail view.
     for col in [
         "window_id", "lines", "start_line", "end_line", "alert_type", "reason",
-        "recommendation_required", "s3_key", "sample_logs", "alert_level"
+        "recommendation_required", "s3_key", "sample_logs", "alert_level", "raw_s3_alert_level"
     ]:
         if col not in df.columns:
             df[col] = ""
@@ -501,7 +505,8 @@ def chart_top_threats(df: pd.DataFrame, n=10):
 # SIDEBAR  — old sidebar visual layout, with S3 added as the default source
 # ─────────────────────────────────────────────────────────────
 with st.sidebar:
-
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/CQUniversity_logo.svg/320px-CQUniversity_logo.svg.png",
+             width=160, use_column_width=False)
     st.markdown("### 🔐 NLP Log Anomaly Detection")
     st.markdown("**COIT20265 · CQUniversity**")
     st.markdown("Project Client: Dr Fariza Sabrina")
@@ -688,7 +693,7 @@ if data_mode == "Amazon S3 LogBERT alerts":
 
 tab1, tab2 = st.tabs([
     f"🔴 Critical / Extreme Score > 14  ({len(alerts_gt14)} alerts)",
-    f"🟠 Medium-High Score > 9 to 14  ({len(alerts_gt9)} alerts)",
+    f"🟠 High/Medium Score > 9 to 14  ({len(alerts_gt9)} alerts)",
 ])
 
 
@@ -699,7 +704,7 @@ def render_alert_table(alerts_df, tab_label):
 
     display_cols = [c for c in [
         "timestamp", "log_message", "threat_score", "severity", "source",
-        "window_id", "lines", "alert_type", "reason", "s3_key"
+        "window_id", "lines", "alert_type", "reason", "raw_s3_alert_level", "s3_key"
     ] if c in alerts_df.columns]
 
     table_df = alerts_df[display_cols].copy()
@@ -813,5 +818,5 @@ if st.button("Analyse Log"):
 # FOOTER
 # ─────────────────────────────────────────────────────────────
 st.markdown("---")
-st.caption("COIT20265 — NLP-Based Log Anomaly Detection · CQUniversity Australia")
+st.caption("COIT20265 — NLP-Based Log Anomaly Detection · CQUniversity Australia · Dr Fariza Sabrina")
 st.caption(f"Dashboard last refreshed: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC")
