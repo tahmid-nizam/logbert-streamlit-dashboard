@@ -814,5 +814,5 @@ if st.button("Analyse Log"):
 # FOOTER
 # ─────────────────────────────────────────────────────────────
 st.markdown("---")
-st.caption("COIT20265 — NLP-Based Log Anomaly Detection · CQUniversity Australia · Dr Fariza Sabrina")
+st.caption("COIT20265 — NLP-Based Log Anomaly Detection · CQUniversity Australia")
 st.caption(f"Dashboard last refreshed: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC")
