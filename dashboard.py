@@ -559,7 +559,7 @@ with st.sidebar:
 
     st.divider()
     st.markdown("#### 🔎 Filters")
-    score_threshold = st.slider("Min Threat Score", 0.0, 100.0, 0.0, step=0.1)
+    score_threshold = st.slider("Min Threat Score", 0.0, 20.0, 0.0, step=0.1)
     severity_filter = st.multiselect(
         "Severity levels to show",
         SEVERITY_ORDER,
