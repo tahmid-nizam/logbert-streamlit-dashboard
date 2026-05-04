@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timezone
@@ -119,13 +118,19 @@ def compute_threat_score(log_text: str) -> int:
 
 
 def severity_label(score: float) -> str:
-    if score >= 70:
+    """Severity scale for LogBERT anomaly scores, not the old 0-100 keyword score scale."""
+    try:
+        score = float(score)
+    except Exception:
+        score = 0.0
+
+    if score > 14:
         return "CRITICAL"
-    elif score >= 40:
+    elif score > EMAIL_THRESHOLD:
         return "HIGH"
-    elif score >= 15:
+    elif score > 9:
         return "MEDIUM"
-    elif score >= 9:
+    elif score > 0:
         return "LOW"
     else:
         return "NORMAL"
@@ -434,10 +439,9 @@ def chart_threat_score_hist(df: pd.DataFrame):
         title="Threat Score Distribution",
         labels={"threat_score": "Threat Score", "count": "Log Count"},
     )
-    fig.add_vline(x=9,  line_dash="dash", line_color="#2a9d8f",  annotation_text="LOW threshold (9)")
-    fig.add_vline(x=14, line_dash="dash", line_color="#e9c46a",  annotation_text="MEDIUM threshold (14)")
-    fig.add_vline(x=40, line_dash="dash", line_color="#f77f00",  annotation_text="HIGH threshold (40)")
-    fig.add_vline(x=70, line_dash="dash", line_color="#d62828",  annotation_text="CRITICAL threshold (70)")
+    fig.add_vline(x=9, line_dash="dash", line_color="#e9c46a", annotation_text="Medium > 9")
+    fig.add_vline(x=EMAIL_THRESHOLD, line_dash="dash", line_color="#f77f00", annotation_text=f"Email/High > {EMAIL_THRESHOLD}")
+    fig.add_vline(x=14, line_dash="dash", line_color="#d62828", annotation_text="Critical > 14")
     fig.update_layout(height=300, margin=dict(t=40, b=20, l=20, r=20))
     return fig
 
@@ -559,12 +563,19 @@ with st.sidebar:
     )
 
     st.divider()
-    st.markdown("#### ℹ️ Scoring Legend")
-    for sev, col in SEVERITY_COLORS.items():
-        ranges = {"CRITICAL": "≥ 70", "HIGH": "40–69", "MEDIUM": "15–39",
-                  "LOW": "9–14", "NORMAL": "0–8"}
-        st.markdown(f"<span style='color:{col};font-weight:700'>■ {sev}</span> — Score {ranges[sev]}",
+    st.markdown("#### ℹ️ LogBERT Scoring Legend")
+    ranges = {
+        "CRITICAL": "> 14",
+        "HIGH": f"> {EMAIL_THRESHOLD} to 14",
+        "MEDIUM": f"> 9 to {EMAIL_THRESHOLD}",
+        "LOW": "> 0 to 9",
+        "NORMAL": "0",
+    }
+    for sev in SEVERITY_ORDER:
+        col = SEVERITY_COLORS[sev]
+        st.markdown(f"<span style='color:{col};font-weight:700'>■ {sev}</span> — LogBERT score {ranges[sev]}",
                     unsafe_allow_html=True)
+    st.caption(f"Email / action threshold: LogBERT score > {EMAIL_THRESHOLD}")
 
 # ─────────────────────────────────────────────────────────────
 # MAIN PANEL  — same visual style as old dashboard
@@ -677,8 +688,8 @@ if data_mode == "Amazon S3 LogBERT alerts":
     st.caption(f"S3/Lambda email threshold reference: score > {EMAIL_THRESHOLD} — {email_alerts} filtered alerts currently above this level.")
 
 tab1, tab2 = st.tabs([
-    f"⚠️ Threat Score > 14  ({len(alerts_gt14)} alerts)",
-    f"🔔 Threat Score > 9   ({len(alerts_gt9)} alerts)",
+    f"🔴 Critical / Extreme Score > 14  ({len(alerts_gt14)} alerts)",
+    f"🟠 Medium-High Score > 9 to 14  ({len(alerts_gt9)} alerts)",
 ])
 
 
@@ -692,12 +703,16 @@ def render_alert_table(alerts_df, tab_label):
         "window_id", "lines", "alert_type", "reason", "s3_key"
     ] if c in alerts_df.columns]
 
-    styled = alerts_df[display_cols].style.applymap(
-        lambda v: f"color: {SEVERITY_COLORS.get(v, '#000')}; font-weight: bold"
-        if v in SEVERITY_COLORS else "",
-        subset=["severity"] if "severity" in display_cols else []
-    )
-    st.dataframe(styled, use_container_width=True, height=300)
+    table_df = alerts_df[display_cols].copy()
+    if "severity" in display_cols:
+        styled = table_df.style.map(
+            lambda v: f"color: {SEVERITY_COLORS.get(v, '#000')}; font-weight: bold"
+            if v in SEVERITY_COLORS else "",
+            subset=["severity"]
+        )
+        st.dataframe(styled, use_container_width=True, height=300)
+    else:
+        st.dataframe(table_df, use_container_width=True, height=300)
 
     if alert_enabled and sns_topic_arn:
         if st.button(f"📤 Send SNS Alerts for all {tab_label}", key=f"sns_{tab_label}"):
