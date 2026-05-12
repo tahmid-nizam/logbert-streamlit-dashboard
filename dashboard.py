@@ -507,7 +507,7 @@ def chart_top_threats(df: pd.DataFrame, n=10):
 with st.sidebar:
     st.markdown("### 🔐 NLP Log Anomaly Detection")
     st.markdown("**COIT20265 · CQUniversity**")
-    st.markdown("Project Client: Dr Fariza Sabrina")
+    
     st.divider()
 
     st.markdown("#### 📂 Data Source")
@@ -583,7 +583,7 @@ with st.sidebar:
 # MAIN PANEL  — same visual style as old dashboard
 # ─────────────────────────────────────────────────────────────
 st.markdown('<div class="main-header">🔐 NLP Log Anomaly Detection Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">COIT20265 · CQUniversity Australia · Dr Fariza Sabrina</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">COIT20265 · CQUniversity Australia ·</div>', unsafe_allow_html=True)
 
 # ── Load data ──────────────────────────────────────────────
 df_full = None
@@ -645,7 +645,7 @@ c1.metric("Total Logs", f"{total:,}")
 c2.metric("🔴 Critical", f"{n_critical:,}")
 c3.metric("🟠 High", f"{n_high:,}")
 c4.metric("🟡 Medium", f"{n_medium:,}")
-c5.metric("⚠️ Anomaly Rate", f"{anomaly_pct}%")
+
 
 # ─────────────────────────────────────────────────────────────
 # CHARTS ROW 1  — old dashboard graphs
@@ -816,5 +816,5 @@ if st.button("Analyse Log"):
 # FOOTER
 # ─────────────────────────────────────────────────────────────
 st.markdown("---")
-st.caption("COIT20265 — NLP-Based Log Anomaly Detection · CQUniversity Australia · Dr Fariza Sabrina")
+st.caption("COIT20265 — NLP-Based Log Anomaly Detection · CQUniversity Australia · ")
 st.caption(f"Dashboard last refreshed: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC")
